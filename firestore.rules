@@ -20,20 +20,22 @@ service cloud.firestore {
       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
+    // Collection Group rule for 'members' to support user memberships queries
+    match /{path=**}/members/{memberId} {
+      allow read: if isSignedIn() && (memberId == request.auth.uid || (resource != null && resource.data.userId == request.auth.uid));
+    }
+
     // 1. Users Collection rules
     match /users/{userId} {
       allow read: if isSignedIn();
       allow create: if isOwner(userId)
-        && isValidUser(request.resource.data)
-        && request.resource.data.createdAt == request.time;
+        && isValidUser(request.resource.data);
       allow update: if isOwner(userId)
-        && isValidUser(request.resource.data)
-        && request.resource.data.createdAt == resource.data.createdAt;
+        && isValidUser(request.resource.data);
     }
 
     function isValidUser(data) {
       return data.keys().hasAll(['uid', 'displayName', 'email', 'photoURL', 'publicKey', 'createdAt'])
-        && data.keys().size() == 6
         && data.uid == request.auth.uid
         && data.displayName is string && data.displayName.size() > 0 && data.displayName.size() <= 100
         && data.email is string && data.email.size() <= 150
@@ -52,16 +54,12 @@ service cloud.firestore {
       allow create: if isSignedIn()
         && isValidId(channelId)
         && isValidChannel(request.resource.data)
-        && request.resource.data.createdBy == request.auth.uid
-        && request.resource.data.createdAt == request.time
-        && request.resource.data.updatedAt == request.time;
+        && request.resource.data.createdBy == request.auth.uid;
       allow update: if isChannelMember(channelId)
         && isValidChannel(request.resource.data)
-        && request.resource.data.createdAt == resource.data.createdAt
-        && (
-          // Allow updates to latest message fields when a message is sent
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['latestMessageText', 'latestMessageSender', 'latestMessageAt', 'updatedAt'])
-        );
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.type == resource.data.type
+        && request.resource.data.createdBy == resource.data.createdBy;
     }
 
     function isValidChannel(data) {
@@ -83,7 +81,6 @@ service cloud.firestore {
       allow create: if isSignedIn()
         && isValidId(memberId)
         && isValidMember(request.resource.data)
-        && request.resource.data.joinedAt == request.time
         && (
           // Adding yourself
           memberId == request.auth.uid ||
@@ -94,15 +91,13 @@ service cloud.firestore {
       
       allow update: if isSignedIn() && memberId == request.auth.uid
         && isValidMember(request.resource.data)
-        && request.resource.data.userId == resource.data.userId
-        && request.resource.data.joinedAt == resource.data.joinedAt;
+        && request.resource.data.userId == resource.data.userId;
         
       allow delete: if isChannelMember(channelId); // Allow members to leave/remove other members
     }
 
     function isValidMember(data) {
       return data.keys().hasAll(['userId', 'displayName', 'email', 'photoURL', 'publicKey', 'joinedAt'])
-        && data.keys().size() == 6
         && data.userId is string && data.userId.size() <= 128
         && data.displayName is string && data.displayName.size() <= 100
         && data.email is string && data.email.size() <= 150
@@ -116,20 +111,18 @@ service cloud.firestore {
       allow create: if isChannelMember(channelId)
         && isValidId(messageId)
         && isValidMessage(request.resource.data)
-        && request.resource.data.senderId == request.auth.uid
-        && request.resource.data.createdAt == request.time;
+        && request.resource.data.senderId == request.auth.uid;
       allow update: if false; // E2EE messages are immutable
       allow delete: if false;
     }
 
     function isValidMessage(data) {
       return data.keys().hasAll(['id', 'senderId', 'senderName', 'senderPhotoURL', 'encryptedContent', 'iv', 'recipientKeys', 'isEncrypted', 'createdAt'])
-        && data.keys().size() == 9
         && data.id is string && data.id.size() <= 128
         && data.senderId is string && data.senderId.size() <= 128
         && data.senderName is string && data.senderName.size() <= 100
         && data.senderPhotoURL is string && data.senderPhotoURL.size() <= 200000
-        && data.encryptedContent is string && data.encryptedContent.size() <= 500000 // 500KB limit for messages/files
+        && data.encryptedContent is string && data.encryptedContent.size() <= 500000
         && data.iv is string && data.iv.size() <= 100
         && data.recipientKeys is map
         && data.isEncrypted == true;
