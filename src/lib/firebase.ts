@@ -1,24 +1,65 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
+import { 
+  getAuth, 
+  GoogleAuthProvider, 
+  signInWithPopup, 
+  signOut, 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  updateProfile 
+} from "firebase/auth";
 import { getFirestore, doc, getDocFromServer } from "firebase/firestore";
 import { OperationType, FirestoreErrorInfo } from "../types";
-import firebaseConfig from "../../firebase-applet-config.json";
 
-// Initialize Firebase
+// The user-provided custom Firebase configuration options
+const firebaseConfig = {
+  apiKey: "AIzaSyDsGH0kK1qjErrdp7x89UhT8I3-Suk30vs",
+  authDomain: "zyromod-com.firebaseapp.com",
+  projectId: "zyromod-com",
+  storageBucket: "zyromod-com.firebasestorage.app",
+  messagingSenderId: "872483311302",
+  appId: "1:872483311302:web:efd27e31655711993e51c7"
+};
+
+// Initialize Firebase with the provided config
 const app = initializeApp(firebaseConfig);
-export const db = firebaseConfig.firestoreDatabaseId && firebaseConfig.firestoreDatabaseId !== "(default)"
-  ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
-  : getFirestore(app);
+export const db = getFirestore(app);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
-// Standard login
+// Google login
 export async function signInWithGoogle() {
   try {
     const result = await signInWithPopup(auth, googleProvider);
     return result.user;
   } catch (error) {
-    console.error("Authentication popup failed:", error);
+    console.error("Google authentication failed:", error);
+    throw error;
+  }
+}
+
+// Email/Password Registration
+export async function registerWithEmailPassword(email: string, pass: string, name: string) {
+  try {
+    const result = await createUserWithEmailAndPassword(auth, email, pass);
+    await updateProfile(result.user, {
+      displayName: name,
+      photoURL: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name || "user")}`
+    });
+    return result.user;
+  } catch (error) {
+    console.error("Email registration failed:", error);
+    throw error;
+  }
+}
+
+// Email/Password Login
+export async function loginWithEmailPassword(email: string, pass: string) {
+  try {
+    const result = await signInWithEmailAndPassword(auth, email, pass);
+    return result.user;
+  } catch (error) {
+    console.error("Email login failed:", error);
     throw error;
   }
 }
@@ -33,7 +74,7 @@ export async function logoutUser() {
   }
 }
 
-// Error handling helper required by Firebase Integration Skill
+// Error handling helper
 export function handleFirestoreError(
   error: unknown,
   operationType: OperationType,
@@ -60,14 +101,13 @@ export function handleFirestoreError(
   throw new Error(JSON.stringify(errInfo));
 }
 
-// Self-test connection, as specified in firestore integration instructions
+// Connection test
 async function testConnection() {
   try {
-    // Attempt a standard server fetch to ensure connection has booted
     await getDocFromServer(doc(db, "test", "connection"));
   } catch (error) {
-    if (error instanceof Error && error.message.includes("the client is offline")) {
-      console.warn("Firestore client is offline. Ready for reconnection.");
+    if (error instanceof Error && error.message.includes("offline")) {
+      console.warn("Firestore is ready in offline-capable mode.");
     }
   }
 }
