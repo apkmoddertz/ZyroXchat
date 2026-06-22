@@ -1,0 +1,30 @@
+workflows:
+  android-debug:
+    name: ZyroXChat Android APK
+    max_build_duration: 60
+
+    instance_type: linux_x2
+
+    environment:
+      node: 20
+
+    scripts:
+      - name: Install npm packages
+        script: |
+          npm install
+
+      - name: Build React app
+        script: |
+          npm run build
+
+      - name: Sync Capacitor Android
+        script: |
+          npx cap sync android
+
+      - name: Build APK
+        script: |
+          cd android
+          ./gradlew assembleDebug
+
+    artifacts:
+      - android/app/build/outputs/apk/debug/*.apk
