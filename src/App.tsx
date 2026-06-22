@@ -30,12 +30,11 @@ export default function App() {
       setAuthLoading(true);
       setJoiningError(null);
       if (firebaseUser) {
-        setCurrentUser(firebaseUser);
-        
         // Ensure user document exists in Firestore `/users/{uid}`
         const userRef = doc(db, "users", firebaseUser.uid);
         try {
           const userSnap = await getDoc(userRef);
+          let profile = null;
           if (!userSnap.exists()) {
             const now = new Date();
             const emailStr = firebaseUser.email || "";
@@ -58,10 +57,12 @@ export default function App() {
               isAdmin: emailStr.toLowerCase() === "zyromod@gmail.com",
             };
             await setDoc(userRef, initProfile);
-            setUserProfile(initProfile);
+            profile = initProfile;
           } else {
-            setUserProfile(userSnap.data());
+            profile = userSnap.data();
           }
+          setUserProfile(profile);
+          setCurrentUser(firebaseUser); // Active only after profile is synced
         } catch (e) {
           console.error("Firestore user initialization failed:", e);
           setJoiningError("Database sync failed. Assure security rules let you write.");
