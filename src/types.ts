@@ -17,6 +17,10 @@ export interface Channel {
   latestMessageText?: string; // encrypted or "[Encrypted Message]" placeholder
   latestMessageSender?: string;
   latestMessageAt?: any;
+  avatarUrl?: string;
+  isSecret?: boolean;
+  pinned?: boolean;
+  unreadCount?: number;
 }
 
 export interface ChannelMember {

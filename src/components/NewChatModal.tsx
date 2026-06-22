@@ -137,11 +137,7 @@ export default function NewChatModal({
   // Launch a collaborative Group chat channel with members and their public keys
   const createGroup = async () => {
     if (!groupName.trim()) {
-      setError("Please input a Group name.");
-      return;
-    }
-    if (selectedUsers.length === 0) {
-      setError("Please select at least 1 group member.");
+      setError("Please input a Group or Channel name.");
       return;
     }
 
@@ -161,7 +157,7 @@ export default function NewChatModal({
         createdBy: currentUserId,
         createdAt: now,
         updatedAt: now,
-        latestMessageText: `Group "${groupName.trim()}" created`,
+        latestMessageText: `Public Chat "${groupName.trim()}" created`,
         latestMessageSender: "System",
         latestMessageAt: now,
       });
@@ -263,21 +259,40 @@ export default function NewChatModal({
         {isGroupMode && (
           <div className="p-4 bg-vibrant-bg/25 border-b border-vibrant-border space-y-3 shrink-0">
             <div className="space-y-1">
-              <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
-                Group Chat Subject
+              <label className="block text-[10px] font-extrabold text-[#4a76a8] uppercase tracking-wider">
+                Group Chat or Public Channel Name
               </label>
-              <input
-                type="text"
-                value={groupName}
-                onChange={(e) => setGroupName(e.target.value)}
-                placeholder="e.g. Engineering Lead, Crypto Club"
-                className="w-full bg-[#F8FAFC] border border-vibrant-border rounded-xl px-3 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition"
-              />
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={groupName}
+                  onChange={(e) => setGroupName(e.target.value)}
+                  placeholder="e.g. Football Fans, Crypto Club, Daily Tips"
+                  className="flex-1 bg-[#F8FAFC] border border-vibrant-border rounded-xl px-3 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#4a76a8] focus:ring-1 focus:ring-[#4a76a8]/30 transition"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      createGroup();
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={createGroup}
+                  disabled={submitting || !groupName.trim()}
+                  className="px-4 bg-[#4a76a8] hover:bg-[#3f6794] disabled:opacity-40 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 shrink-0 cursor-pointer shadow-xs"
+                >
+                  {submitting ? <Loader className="h-3 w-3 animate-spin text-white" /> : <Plus className="h-3.5 w-3.5 text-white" />}
+                  Create
+                </button>
+              </div>
+              <p className="text-[10.5px] text-[#707070] font-medium leading-relaxed pt-0.5">
+                💡 Enter a name above and click <strong>Create</strong> to launch instantly! Everyone will see and auto-join it.
+              </p>
             </div>
             {selectedUsers.length > 0 && (
-              <div className="space-y-11">
+              <div className="space-y-1.5">
                 <label className="block text-[10px] font-extrabold text-slate-550 uppercase tracking-wider">
-                  Selected Members ({selectedUsers.length})
+                  Selected Initial Members ({selectedUsers.length})
                 </label>
                 <div className="flex flex-wrap gap-1.5 max-h-12 overflow-y-auto">
                   {selectedUsers.map((u) => (

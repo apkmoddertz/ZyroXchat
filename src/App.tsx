@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, signInWithGoogle, registerWithEmailPassword, loginWithEmailPassword, logoutUser, db } from "./lib/firebase";
+import { seedTelegramChats } from "./lib/firebase-seed";
 import { requestBrowserNotificationPermission } from "./lib/notifications";
 import { Channel } from "./types";
 import NewChatModal from "./components/NewChatModal";
@@ -9,7 +10,9 @@ import ChannelList from "./components/ChannelList";
 import ChatWindow from "./components/ChatWindow";
 import UserProfileModal from "./components/UserProfileModal";
 import UserProfilePreviewModal from "./components/UserProfilePreviewModal";
-import { KeyRound, ShieldAlert, Sparkles, LogOut, Loader, Lock, MessageCircle, Settings, Mail, User as UserIcon } from "lucide-react";
+import SlidingMenu from "./components/SlidingMenu";
+import RegisteredUsersList from "./components/RegisteredUsersList";
+import { KeyRound, ShieldAlert, Sparkles, LogOut, Loader, Lock, MessageCircle, Settings, Mail, User as UserIcon, Menu, X, Search, Plus, ArrowLeft } from "lucide-react";
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -20,8 +23,16 @@ export default function App() {
   const [isNewChatOpen, setIsNewChatOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [previewUserUid, setPreviewUserUid] = useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSlidingMenuOpen, setIsSlidingMenuOpen] = useState(false);
+  const [currentSidebarView, setCurrentSidebarView] = useState<"chats" | "registered-users">("chats");
+
   const [browserNotificationsEnabled, setBrowserNotificationsEnabled] = useState(false);
   const [joiningError, setJoiningError] = useState<string | null>(null);
+
+  // Global search states in the header
+  const [isHeaderSearching, setIsHeaderSearching] = useState(false);
+  const [globalSearchTerm, setGlobalSearchTerm] = useState("");
 
   // Email authentication form states
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
@@ -71,6 +82,13 @@ export default function App() {
           setUserProfile(profile);
           setCurrentUser(firebaseUser); // Active only after profile is synced
           setPrivateKeyJwk("cleartext-private");
+          
+          if (profile && !profile.seededTelegram) {
+            const dispName = profile.displayName || firebaseUser.displayName || "User";
+            const emailAddr = profile.email || firebaseUser.email || "";
+            const avatarPhoto = profile.photoURL || firebaseUser.photoURL || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(dispName)}`;
+            seedTelegramChats(firebaseUser.uid, dispName, emailAddr, avatarPhoto);
+          }
         } catch (e) {
           console.error("Firestore user initialization failed:", e);
           setJoiningError("Database sync failed. Assure security rules let you write.");
@@ -336,102 +354,176 @@ export default function App() {
   return (
     <div className="h-screen w-screen bg-vibrant-bg flex flex-col overflow-hidden text-slate-800" id="fortress-app-main-layout">
       {/* 3. Global Navigation Header */}
-      <header className="px-6 py-4 bg-white border-b border-vibrant-border flex items-center justify-between shrink-0 shadow-xs">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary/10 text-primary rounded-xl shrink-0 border border-primary/20">
-            <MessageCircle className="h-5 w-5 animate-pulse" />
-          </div>
-          <div>
-            <h1 className="text-sm font-extrabold text-slate-805 tracking-wider font-sans uppercase">BETTORS CHAT</h1>
-            <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span> Active Chat Connection
-            </p>
-          </div>
-        </div>
-
-        {/* Current user micro profile */}
-        <div className="flex items-center gap-4">
-          <div 
-            onClick={() => setIsProfileOpen(true)}
-            className="flex items-center gap-2.5 text-right cursor-pointer group hover:opacity-85 transition"
-            title="Click to customize profile"
-          >
-            <div className="hidden sm:block">
-              <p className="text-xs font-bold text-slate-800 leading-tight group-hover:text-primary transition">
-                {userProfile?.displayName || currentUser.displayName || "Agent"}
-              </p>
-              <p className="text-[10px] text-slate-400 font-mono truncate max-w-40">{currentUser.email}</p>
-            </div>
-            <div className="relative">
-              <img
-                src={userProfile?.photoURL || currentUser.photoURL || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userProfile?.displayName || "Agent")}`}
-                referrerPolicy="no-referrer"
-                className="h-8 w-8 rounded-xl border border-slate-200 object-cover shadow-xs"
-              />
-              <div className="absolute -bottom-1 -right-1 bg-white border border-slate-200 text-slate-500 rounded-full p-0.5 shadow-xs">
-                <Settings className="h-2.5 w-2.5 text-primary" />
+      {!activeChannel && (
+        <header className="px-4 py-2 bg-[#527da3] flex items-center justify-between shrink-0 shadow-sm border-b border-sky-850/10 select-none z-10 text-white">
+          {isHeaderSearching ? (
+            <div className="flex-1 flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setIsHeaderSearching(false);
+                  setGlobalSearchTerm("");
+                }}
+                className="p-1 hover:bg-white/10 rounded-full text-white transition cursor-pointer"
+                title="Close search"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/70 pointer-events-none" />
+                <input
+                  id="header-chat-search"
+                  type="text"
+                  autoFocus
+                  placeholder="Search chats, groups or channels..."
+                  value={globalSearchTerm}
+                  onChange={(e) => setGlobalSearchTerm(e.target.value)}
+                  className="w-full bg-white/10 hover:bg-white/15 focus:bg-white/20 text-white placeholder-white/60 text-xs rounded-xl py-1.5 pl-9 pr-8 focus:outline-none focus:ring-1 focus:ring-white/40 transition"
+                />
+                {globalSearchTerm && (
+                  <button
+                    onClick={() => setGlobalSearchTerm("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-white/70 hover:text-white rounded-full transition cursor-pointer"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
             </div>
-          </div>
+          ) : (
+            <>
+              <div className="flex items-center">
+                {/* Hamburger sliding menu trigger */}
+                <button
+                  onClick={() => setIsSlidingMenuOpen(true)}
+                  className="p-1.5 hover:bg-white/10 rounded-lg mr-2 text-white transition active:scale-95 flex items-center justify-center cursor-pointer"
+                  title="Open Navigation Menu"
+                  id="hamburger-sliding-menu-trigger"
+                >
+                  <Menu className="h-5 w-5" />
+                </button>
 
-          <button
-            onClick={logoutUser}
-            className="p-1.5 px-3.5 bg-slate-100 hover:bg-slate-205 active:bg-slate-300 text-slate-600 hover:text-slate-800 rounded-xl border border-slate-200 transition flex items-center gap-1.5 cursor-pointer text-xs font-semibold"
-            id="user-logout-btn"
-          >
-            <LogOut className="h-3.5 w-3.5" />
-            Exit
-          </button>
-        </div>
-      </header>
+                <h1 className="text-lg font-bold tracking-wide font-sans flex items-center gap-1.5 text-white">
+                  ZyroX
+                </h1>
+                <span className="hidden md:inline-block ml-3 text-[9px] bg-emerald-500/25 border border-emerald-400/40 text-emerald-300 font-bold tracking-wide px-1.5 py-0.5 rounded-full">
+                  E2EE SECURED
+                </span>
+              </div>
+
+              {/* Current user micro profile with Telegram styling */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setIsHeaderSearching(true);
+                  }}
+                  className="p-1 text-white/90 hover:text-white hover:bg-white/10 rounded-full transition cursor-pointer"
+                  title="Search chats"
+                >
+                  <Search className="h-4.5 w-4.5" />
+                </button>
+
+                <div className="h-4 w-px bg-white/20 mx-0.5 hidden sm:block" />
+
+                <div 
+                  onClick={() => setIsProfileOpen(true)}
+                  className="flex items-center gap-2 text-right cursor-pointer group hover:bg-white/10 p-0.5 px-2 rounded-xl transition"
+                  title="Click to customize profile"
+                >
+                  <div className="hidden sm:block">
+                    <p className="text-[11.5px] font-bold text-white leading-tight">
+                      {userProfile?.displayName || currentUser.displayName || "User"}
+                    </p>
+                    <p className="text-[9.5px] text-sky-100/70 truncate max-w-40">{currentUser.email}</p>
+                  </div>
+                  <div className="relative">
+                    <img
+                      src={userProfile?.photoURL || currentUser.photoURL || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userProfile?.displayName || "User")}`}
+                      referrerPolicy="no-referrer"
+                      className="h-7.5 w-7.5 rounded-full border border-white/20 object-cover shadow-xs"
+                    />
+                    <div className="absolute -bottom-1 -right-1 bg-[#527da3] border border-white/30 text-white rounded-full p-0.5 shadow-xs">
+                      <Settings className="h-2 w-2" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </header>
+      )}
 
       {/* 4. Chat Area Wrapper */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar Left: Chats, Groups and Alerts */}
-        <ChannelList
-          currentUserId={currentUser.uid}
-          activeChannelId={activeChannel ? activeChannel.id : null}
-          onSelectChannel={(chan) => setActiveChannel(chan)}
-          onOpenNewChat={() => setIsNewChatOpen(true)}
-          onBrowserNotificationToggle={handleBrowserNotificationToggle}
-          browserNotificationsEnabled={browserNotificationsEnabled}
-        />
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* Pure home page chats, groups and channels panel (WhatsApp / Telegram style) */}
+        <div 
+          className={`h-full flex flex-col bg-white border-r border-[#E2E8F0] shrink-0 w-full md:w-80 lg:w-90 transition-all duration-300
+            ${activeChannel ? "hidden md:flex" : "flex"}`}
+        >
+          {currentSidebarView === "registered-users" ? (
+            <RegisteredUsersList
+              currentUserId={currentUser.uid}
+              currentUserProfile={userProfile}
+              onSelectChannel={(chan) => {
+                setActiveChannel(chan);
+                setCurrentSidebarView("chats");
+              }}
+              onBackToChats={() => setCurrentSidebarView("chats")}
+            />
+          ) : (
+            <ChannelList
+              currentUserId={currentUser.uid}
+              activeChannelId={activeChannel ? activeChannel.id : null}
+              onSelectChannel={(chan) => {
+                setActiveChannel(chan);
+              }}
+              onOpenNewChat={() => setIsNewChatOpen(true)}
+              onBrowserNotificationToggle={handleBrowserNotificationToggle}
+              browserNotificationsEnabled={browserNotificationsEnabled}
+              searchTerm={globalSearchTerm}
+            />
+          )}
+        </div>
 
         {/* Master Right Window: Decrypt message thread */}
-        {activeChannel && privateKeyJwk ? (
-          <ChatWindow
-            channel={activeChannel}
-            currentUserId={currentUser.uid}
-            privateKeyJwkString={privateKeyJwk}
-            onStartDMWithUserId={(userId) => {
-              setPreviewUserUid(null);
-              const sortedIds = [currentUser.uid, userId].sort();
-              const channelId = `dm-${sortedIds[0]}-${sortedIds[1]}`;
-              getDoc(doc(db, "channels", channelId)).then((snap) => {
-                if (snap.exists()) {
-                  setActiveChannel(snap.data() as Channel);
+        <div className={`flex-1 h-full flex flex-col ${activeChannel ? "flex" : "hidden md:flex"}`}>
+          {activeChannel && privateKeyJwk ? (
+            <ChatWindow
+              channel={activeChannel}
+              currentUserId={currentUser.uid}
+              currentUserProfile={userProfile}
+              privateKeyJwkString={privateKeyJwk}
+              onBackToChats={() => setActiveChannel(null)}
+              onStartDMWithUserId={(userId) => {
+                setPreviewUserUid(null);
+                const sortedIds = [currentUser.uid, userId].sort();
+                const channelId = `dm-${sortedIds[0]}-${sortedIds[1]}`;
+                getDoc(doc(db, "channels", channelId)).then((snap) => {
+                  if (snap.exists()) {
+                    setActiveChannel(snap.data() as Channel);
+                  }
+                });
+              }}
+              onViewUserProfileUid={(targetUid) => {
+                if (targetUid === currentUser.uid) {
+                  setIsProfileOpen(true);
+                } else {
+                  setPreviewUserUid(targetUid);
                 }
-              });
-            }}
-            onViewUserProfileUid={(targetUid) => {
-              if (targetUid === currentUser.uid) {
-                setIsProfileOpen(true);
-              } else {
-                setPreviewUserUid(targetUid);
-              }
-            }}
-          />
-        ) : (
-          <div className="flex-1 bg-white flex flex-col items-center justify-center text-slate-400 p-8 text-center" id="empty-chat-welcome">
-            <div className="p-5 bg-gradient-to-tr from-primary/5 to-secondary/5 text-primary border border-primary/10 rounded-3xl mb-4 shadow-xs">
-              <MessageCircle className="h-10 w-10 text-primary" />
+              }}
+            />
+          ) : (
+            <div className="flex-1 bg-slate-100 flex flex-col items-center justify-center text-slate-400 p-8 text-center select-none" id="empty-chat-welcome" style={{
+              backgroundImage: "radial-gradient(#d1d5db 1px, transparent 1px)",
+              backgroundSize: "20px 20px"
+            }}>
+              <div className="bg-slate-600/80 backdrop-blur-md text-white p-2.5 px-5 rounded-full shadow-md max-w-xs transition-transform transform">
+                <p className="text-[13.5px] font-semibold leading-relaxed tracking-tight">
+                  Select a chat to start messaging on ZyroX
+                </p>
+              </div>
             </div>
-            <h3 className="text-sm font-bold text-slate-700">Decentralized Messenger</h3>
-            <p className="text-xs text-slate-400 max-w-xs leading-relaxed mt-1">
-              Select or create an E2EE chat. All keys remain private and local to your system.
-            </p>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* 5. Start DM or Group Chat Selection Overlay */}
@@ -477,6 +569,23 @@ export default function App() {
                 setActiveChannel(snap.data() as Channel);
               }
             });
+          }}
+        />
+      )}
+
+      {/* 8. Slide-out Left Navigation Drawer Menu */}
+      {isSlidingMenuOpen && userProfile && (
+        <SlidingMenu
+          isOpen={isSlidingMenuOpen}
+          onClose={() => setIsSlidingMenuOpen(false)}
+          currentUserId={currentUser.uid}
+          userProfile={userProfile}
+          onProfileUpdated={(updated) => {
+            setUserProfile(updated);
+          }}
+          onOpenNewChat={() => setIsNewChatOpen(true)}
+          onToggleRegisteredUsers={() => {
+            setCurrentSidebarView("registered-users");
           }}
         />
       )}

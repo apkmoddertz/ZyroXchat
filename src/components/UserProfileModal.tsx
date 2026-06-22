@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
 import { doc, updateDoc, collectionGroup, query, where, getDocs, writeBatch } from "firebase/firestore";
-import { db } from "../lib/firebase";
-import { X, Camera, Save, RotateCcw, AlertCircle, Sparkles, Check, RefreshCw } from "lucide-react";
+import { db, logoutUser } from "../lib/firebase";
+import { X, Camera, Save, RotateCcw, AlertCircle, Sparkles, Check, RefreshCw, LogOut } from "lucide-react";
 
 interface UserProfileModalProps {
   currentUserId: string;
@@ -328,31 +328,47 @@ export default function UserProfileModal({
           </div>
 
           {/* Footer Actions */}
-          <div className="flex items-center gap-2.5 pt-2">
+          <div className="flex flex-col gap-2.5 pt-2">
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={isSaving}
+                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-55 text-slate-705 font-bold text-xs rounded-xl transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSaving}
+                className="flex-1 py-2.5 bg-primary hover:bg-indigo-700 disabled:opacity-55 text-white font-extrabold text-xs rounded-xl shadow-md flex items-center justify-center gap-1.5 cursor-pointer transition"
+              >
+                {isSaving ? (
+                  <>
+                    <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-3.5 w-3.5" />
+                    Save Changes
+                  </>
+                )}
+              </button>
+            </div>
+
+            <div className="border-t border-slate-100 my-1" />
+
             <button
               type="button"
-              onClick={onClose}
-              disabled={isSaving}
-              className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-55 text-slate-705 font-bold text-xs rounded-xl transition cursor-pointer"
+              onClick={() => {
+                onClose();
+                logoutUser();
+              }}
+              className="w-full py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 border border-rose-200/50 font-extrabold text-xs rounded-xl flex items-center justify-center gap-1.5 cursor-pointer transition shadow-xs"
             >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="flex-1 py-2.5 bg-primary hover:bg-indigo-700 disabled:opacity-55 text-white font-extrabold text-xs rounded-xl shadow-md flex items-center justify-center gap-1.5 cursor-pointer transition"
-            >
-              {isSaving ? (
-                <>
-                  <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="h-3.5 w-3.5" />
-                  Save Changes
-                </>
-              )}
+              <LogOut className="h-3.5 w-3.5" />
+              Exit Account
             </button>
           </div>
         </form>
