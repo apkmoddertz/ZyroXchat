@@ -96,7 +96,7 @@ export default function NewChatModal({
         createdBy: currentUserId,
         createdAt: now,
         updatedAt: now,
-        latestMessageText: "🔒 Direct encrypted chat created",
+        latestMessageText: "Direct chat created",
         latestMessageSender: "System",
         latestMessageAt: now,
       });
@@ -161,7 +161,7 @@ export default function NewChatModal({
         createdBy: currentUserId,
         createdAt: now,
         updatedAt: now,
-        latestMessageText: `🔒 Secured group "${groupName.trim()}" initialized`,
+        latestMessageText: `Group "${groupName.trim()}" created`,
         latestMessageSender: "System",
         latestMessageAt: now,
       });
@@ -213,10 +213,10 @@ export default function NewChatModal({
         <div className="p-4 border-b border-vibrant-border flex items-center justify-between bg-white">
           <div>
             <h3 className="text-sm font-extrabold text-slate-805 flex items-center gap-1.5">
-              {isGroupMode ? "Create Secure Group Chat" : "Start Secure 1-to-1 PM"}
+              {isGroupMode ? "Create Group Chat" : "Start 1-to-1 PM"}
             </h3>
-            <p className="text-xs text-slate-400 font-medium">
-              {isGroupMode ? "Bundle contacts with cryptographic keys" : "Select contact to swap secure cipher"}
+            <p className="text-xs text-slate-400 font-medium font-sans">
+              {isGroupMode ? "Bundle contacts to talk betting strategies" : "Select contact to chat direct and clean"}
             </p>
           </div>
           <button
@@ -248,7 +248,7 @@ export default function NewChatModal({
             }`}
           >
             <Users className="h-4 w-4" />
-            Secure Group Chat
+            Group Chat
           </button>
         </div>
 

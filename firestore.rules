@@ -2,121 +2,34 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Global Safety Net default deny
-    match /{document=**} {
-      allow read, write: if false;
-    }
-
     // Helper functions
     function isSignedIn() {
       return request.auth != null;
     }
 
-    // A user is the owner of their own user document
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
-    }
-
-    // Collection Group rule for 'members' to support user memberships queries
-    // To allow the query collectionGroup('members').where('userId', '==', currentUserId),
-    // the security rules must allow reads when the query constraint (userId == auth.uid) matches.
-    match /{path=**}/members/{memberId} {
-      allow read: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid || memberId == request.auth.uid);
-    }
-
-    // 1. Users Collection rules
+    // 1. Users Collection
     match /users/{userId} {
-      allow read: if isSignedIn();
-      allow create, update: if isOwner(userId);
+      allow read, write: if isSignedIn();
     }
 
-    // Is a user a member of a channel
-    function isChannelMember(channelId) {
-      return isSignedIn() && exists(/databases/$(database)/documents/channels/$(channelId)/members/$(request.auth.uid));
-    }
-
-    // 2. Channels Collection rules
+    // 2. Channels Collection
     match /channels/{channelId} {
-      allow read: if isChannelMember(channelId);
-      allow create: if isSignedIn()
-        && isValidId(channelId)
-        && isValidChannel(request.resource.data)
-        && request.resource.data.createdBy == request.auth.uid;
-      allow update: if isChannelMember(channelId)
-        && isValidChannel(request.resource.data)
-        && request.resource.data.id == resource.data.id
-        && request.resource.data.type == resource.data.type
-        && request.resource.data.createdBy == resource.data.createdBy;
-    }
-
-    function isValidChannel(data) {
-      return data.keys().hasAll(['id', 'name', 'type', 'createdBy', 'createdAt', 'updatedAt'])
-        && data.id is string && data.id.size() <= 128
-        && data.name is string && data.name.size() <= 100
-        && data.type is string && (data.type == 'group' || data.type == 'dm')
-        && data.createdBy is string && data.createdBy.size() <= 128;
+      allow read, write: if isSignedIn();
     }
 
     // 3. Channel Members Subcollection
     match /channels/{channelId}/members/{memberId} {
-      // Any member of the channel can read the other members
-      allow read: if isChannelMember(channelId) || (isSignedIn() && memberId == request.auth.uid);
-      
-      // Membership creation is allowed if:
-      // 1. Channel is being created and the creator adds themselves
-      // 2. Or the creator is adding others during channel setup, or any existing member is inviting/adding someone new
-      allow create: if isSignedIn()
-        && isValidId(memberId)
-        && isValidMember(request.resource.data)
-        && (
-          // Adding yourself
-          memberId == request.auth.uid ||
-          // Or channel was recently created by you or exists, and you are currently a member or its creator
-          isChannelMember(channelId) ||
-          get(/databases/$(database)/documents/channels/$(channelId)).data.createdBy == request.auth.uid
-        );
-      
-      allow update: if isSignedIn() && memberId == request.auth.uid
-        && isValidMember(request.resource.data)
-        && request.resource.data.userId == resource.data.userId;
-        
-      allow delete: if isChannelMember(channelId); // Allow members to leave/remove other members
-    }
-
-    function isValidMember(data) {
-      return data.keys().hasAll(['userId', 'displayName', 'email', 'photoURL', 'publicKey', 'joinedAt'])
-        && data.userId is string && data.userId.size() <= 128
-        && data.displayName is string && data.displayName.size() <= 100
-        && data.email is string && data.email.size() <= 150
-        && data.photoURL is string && data.photoURL.size() <= 200000
-        && data.publicKey is string && data.publicKey.size() <= 2000;
+      allow read, write: if isSignedIn();
     }
 
     // 4. Messages subcollection
     match /channels/{channelId}/messages/{messageId} {
-      allow read: if isChannelMember(channelId);
-      allow create: if isChannelMember(channelId)
-        && isValidId(messageId)
-        && isValidMessage(request.resource.data)
-        && request.resource.data.senderId == request.auth.uid;
-      allow update: if false; // E2EE messages are immutable
-      allow delete: if false;
+      allow read, write: if isSignedIn();
     }
 
-    function isValidMessage(data) {
-      return data.keys().hasAll(['id', 'senderId', 'senderName', 'senderPhotoURL', 'encryptedContent', 'iv', 'recipientKeys', 'isEncrypted', 'createdAt'])
-        && data.id is string && data.id.size() <= 128
-        && data.senderId is string && data.senderId.size() <= 128
-        && data.senderName is string && data.senderName.size() <= 100
-        && data.senderPhotoURL is string && data.senderPhotoURL.size() <= 200000
-        && data.encryptedContent is string && data.encryptedContent.size() <= 500000
-        && data.iv is string && data.iv.size() <= 100
-        && data.recipientKeys is map
-        && data.isEncrypted == true;
+    // Collection Group rule for 'members' to support user memberships query queries
+    match /{path=**}/members/{memberId} {
+      allow read, write: if isSignedIn();
     }
   }
 }

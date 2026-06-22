@@ -4,7 +4,6 @@ import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, signInWithGoogle, logoutUser, db } from "./lib/firebase";
 import { requestBrowserNotificationPermission } from "./lib/notifications";
 import { Channel } from "./types";
-import UserSetup from "./components/UserSetup";
 import NewChatModal from "./components/NewChatModal";
 import ChannelList from "./components/ChannelList";
 import ChatWindow from "./components/ChatWindow";
@@ -17,7 +16,7 @@ export default function App() {
   const [userProfile, setUserProfile] = useState<any | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [activeChannel, setActiveChannel] = useState<Channel | null>(null);
-  const [privateKeyJwk, setPrivateKeyJwk] = useState<string | null>(null);
+  const [privateKeyJwk, setPrivateKeyJwk] = useState<string | null>("cleartext-private");
   const [isNewChatOpen, setIsNewChatOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [previewUserUid, setPreviewUserUid] = useState<string | null>(null);
@@ -63,6 +62,7 @@ export default function App() {
           }
           setUserProfile(profile);
           setCurrentUser(firebaseUser); // Active only after profile is synced
+          setPrivateKeyJwk("cleartext-private");
         } catch (e) {
           console.error("Firestore user initialization failed:", e);
           setJoiningError("Database sync failed. Assure security rules let you write.");
@@ -181,23 +181,16 @@ export default function App() {
 
   return (
     <div className="h-screen w-screen bg-vibrant-bg flex flex-col overflow-hidden text-slate-800" id="fortress-app-main-layout">
-      {/* 2. E2EE Key Verification & Setup Panel */}
-      <UserSetup
-        userId={currentUser.uid}
-        userEmail={currentUser.email || ""}
-        onKeysReady={handleKeysReady}
-      />
-
       {/* 3. Global Navigation Header */}
       <header className="px-6 py-4 bg-white border-b border-vibrant-border flex items-center justify-between shrink-0 shadow-xs">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-primary/10 text-primary rounded-xl shrink-0 border border-primary/20">
-            <KeyRound className="h-5 w-5" />
+            <MessageCircle className="h-5 w-5 animate-pulse" />
           </div>
           <div>
-            <h1 className="text-sm font-extrabold text-slate-805 tracking-wider font-sans">FORTRESS SECURE</h1>
-            <p className="text-[9px] font-bold text-accent uppercase tracking-widest flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-accent animate-pulse"></span> ACTIVE NODE SECURITY
+            <h1 className="text-sm font-extrabold text-slate-805 tracking-wider font-sans uppercase">BETTORS CHAT</h1>
+            <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span> Active Chat Connection
             </p>
           </div>
         </div>

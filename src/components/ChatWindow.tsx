@@ -4,7 +4,7 @@ import { db, handleFirestoreError } from "../lib/firebase";
 import { encryptMessage, decryptMessage } from "../lib/encryption";
 import { playNotificationSound, showBrowserNotification } from "../lib/notifications";
 import { OperationType, Channel, ChannelMember, Message } from "../types";
-import { Send, Image, Loader, ShieldCheck, Lock, Sparkles, User, FileImage, ShieldAlert, MessageSquareCode, BadgeCheck } from "lucide-react";
+import { Send, Image, Loader, ShieldCheck, Lock, Sparkles, User, FileImage, ShieldAlert, MessageSquareCode, BadgeCheck, MessageCircle } from "lucide-react";
 
 interface ChatWindowProps {
   channel: Channel;
@@ -323,16 +323,16 @@ export default function ChatWindow({
       <div className="px-6 py-4 border-b border-vibrant-border bg-white flex items-center justify-between shrink-0 shadow-xs">
         <div>
           <h2 className="text-sm font-extrabold text-slate-800 flex items-center gap-1.5 uppercase font-sans">
-            <Lock className="h-4 w-4 text-primary" />
+            <MessageCircle className="h-4 w-4 text-primary animate-pulse" />
             {channel.name}
           </h2>
           <p className="text-[10px] text-slate-400 font-mono tracking-wide font-medium">
-            CRYPTO ROOM ID: {channel.id.toUpperCase()} • {members.length} SECURE PEER KEYS ACTIVE
+            ROOM ID: {channel.id.toUpperCase()} • {members.length} MEMBERS ONLINE
           </p>
         </div>
-        <div className="security-pill bg-[#ECFDF5] text-[#065F46] px-3.5 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider flex items-center gap-1.5 border border-[#A7F3D0]/40">
-          <ShieldCheck className="h-4 w-4 text-[#10B981]" />
-          End-to-End Encrypted
+        <div className="security-pill bg-emerald-50 text-emerald-700 px-3.5 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider flex items-center gap-1.5 border border-emerald-200/55 shadow-xs">
+          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping"></span>
+          Live Active
         </div>
       </div>
 
@@ -348,16 +348,16 @@ export default function ChatWindow({
         {loading ? (
           <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-2">
             <Loader className="h-5 w-5 animate-spin text-primary" />
-            <span className="text-xs font-semibold">Decrypting decentralized security layer...</span>
+            <span className="text-xs font-semibold">Streaming room messages...</span>
           </div>
         ) : messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-3 max-w-sm mx-auto text-center py-12">
             <div className="p-4 bg-primary/10 text-primary border border-primary/20 rounded-full animate-bounce">
               <Sparkles className="h-6 w-6" />
             </div>
-            <p className="text-xs font-bold text-slate-700">Vault Room Ready</p>
-            <p className="text-[11px] leading-relaxed text-slate-450">
-              Every message sent to this database is converted into armored RSA-AES ciphertext beforehand. Only room participants hold the private key.
+            <p className="text-xs font-bold text-slate-700 font-sans uppercase tracking-wider">Chat Room Empty</p>
+            <p className="text-[11px] leading-relaxed text-slate-400">
+              Start exchanging daily sports picks, real-time odds, and betting strategies with room members.
             </p>
           </div>
         ) : (
@@ -478,7 +478,7 @@ export default function ChatWindow({
             value={text}
             onChange={(e) => setText(e.target.value)}
             disabled={sending}
-            placeholder={mediaPreview ? "Click send to transmit encrypted image..." : "Write a secure end-to-end encrypted packet..."}
+            placeholder={mediaPreview ? "Click Transmit to upload image..." : "Type a message..."}
             className="flex-1 bg-[#F8FAFC] border border-vibrant-border rounded-xl px-4 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/45 transition"
           />
 
