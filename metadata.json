@@ -1,0 +1,8 @@
+{
+  "name": "Remix: ZyroX",
+  "description": "Secure group chat room and private messaging with end-to-end encryption (E2EE) and instant notification chime alerts.\n\nMake it feel like real chat apk like Whatsapp or Telegram, after user register send email to firebase // Import the functions you need from the SDKs you need\nimport { initializeApp } from \"firebase/app\";\n// TODO: Add SDKs for Firebase products that you want to use\n// https://firebase.google.com/docs/web/setup#available-libraries\n\n// Your web app\u0027s Firebase configuration\nconst firebaseConfig \u003d {\n  apiKey: \"AIzaSyDsGH0kK1qjErrdp7x89UhT8I3-Suk30vs\",\n  authDomain: \"zyromod-com.firebaseapp.com\",\n  projectId: \"zyromod-com\",\n  storageBucket: \"zyromod-com.firebasestorage.app\",\n  messagingSenderId: \"872483311302\",\n  appId: \"1:872483311302:web:f5efa557ea94e3f23e51c7\"\n};\n\n// Initialize Firebase\nconst app \u003d initializeApp(firebaseConfig); best for login, user register and Login with Google, Google Login enable on firebase ",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

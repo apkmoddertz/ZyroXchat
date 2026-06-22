@@ -1,0 +1,84 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User profile with public keys for E2EE",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "publicKey": { "type": "string", "description": "JWK serialized RSA-OAEP public key of the user" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "displayName", "email", "publicKey", "createdAt"]
+    },
+    "Channel": {
+      "title": "Chat Channel",
+      "description": "A group channel or a direct message metadata",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["group", "dm"] },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "latestMessageText": { "type": "string" },
+        "latestMessageSender": { "type": "string" },
+        "latestMessageAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "type", "createdBy", "createdAt", "updatedAt"]
+    },
+    "ChannelMember": {
+      "title": "Channel Member",
+      "description": "Membership mapping inside a channel with cached details",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "publicKey": { "type": "string" },
+        "joinedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "displayName", "email", "publicKey", "joinedAt"]
+    },
+    "Message": {
+      "title": "Encrypted Message",
+      "description": "End-to-end encrypted message containing encrypted payload and encrypted AES keys for recipients",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "senderPhotoURL": { "type": "string" },
+        "encryptedContent": { "type": "string", "description": "Base64 AES-GCM ciphertext of the text" },
+        "iv": { "type": "string", "description": "Base64 AES-GCM IV status" },
+        "recipientKeys": { "type": "object", "description": "Map of userId -> base64 RSA encrypted AES key" },
+        "isEncrypted": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "senderId", "senderName", "senderPhotoURL", "encryptedContent", "iv", "recipientKeys", "isEncrypted", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Profiles of registered users"
+    },
+    "/channels/{channelId}": {
+      "schema": "Channel",
+      "description": "Group channels and DM channel definitions"
+    },
+    "/channels/{channelId}/members/{memberId}": {
+      "schema": "ChannelMember",
+      "description": "Members of a specific channel"
+    },
+    "/channels/{channelId}/messages/{messageId}": {
+      "schema": "Message",
+      "description": "End-to-end encrypted messages in a channel"
+    }
+  }
+}
